@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Form with Validation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            padding: 30px;
+        }
+        
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: #555;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #4D90FE;
+            box-shadow: 0 0 0 2px rgba(77, 144, 254, 0.2);
+        }
+        
+        input.error {
+            border-color: #ff3860;
+        }
+        
+        input.success {
+            border-color: #23d160;
+        }
+        
+        .error-message {
+            color: #ff3860;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+            padding-left: 5px;
+        }
+        
+        .error-message.visible {
+            display: block;
+        }
+        
+        .password-strength {
+            margin-top: 5px;
+            height: 5px;
+            background-color: #eee;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .strength-meter {
+            height: 100%;
+            width: 0;
+            border-radius: 3px;
+            transition: width 0.3s, background-color 0.3s;
+        }
+        
+        .strength-text {
+            font-size: 12px;
+            margin-top: 5px;
+            padding-left: 5px;
+        }
+        
+        button {
+            background-color: #4D90FE;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 12px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #3c7ae4;
+        }
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .success-message {
+            text-align: center;
+            color: #23d160;
+            font-size: 16px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .success-message.visible {
+            display: block;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            input {
+                padding: 10px 12px;
+            }
+            
+            button {
+                padding: 10px 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Registration Form</h2>
+        <form id="registrationForm" novalidate>
+            <div class="form-group">
+                <label for="name">Full Name</label>
+                <input type="text" id="name" placeholder="Enter your full name">
+                <div class="error-message" id="nameError"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" placeholder="Enter your email address">
+                <div class="error-message" id="emailError"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="phone">Phone Number</label>
+                <input type="tel" id="phone" placeholder="Enter your phone number">
+                <div class="error-message" id="phoneError"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Create a password">
+                <div class="password-strength">
+                    <div class="strength-meter" id="strengthMeter"></div>
+                </div>
+                <div class="strength-text" id="strengthText"></div>
+                <div class="error-message" id="passwordError"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="confirmPassword">Confirm Password</label>
+                <input type="password" id="confirmPassword" placeholder="Confirm your password">
+                <div class="error-message" id="confirmPasswordError"></div>
+            </div>
+            
+            <button type="submit" id="submitBtn">Register</button>
+            
+            <div class="success-message" id="successMessage">
+                Registration successful! Thank you for signing up.
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('registrationForm');
+            const nameInput = document.getElementById('name');
+            const emailInput = document.getElementById('email');
+            const phoneInput = document.getElementById('phone');
+            const passwordInput = document.getElementById('password');
+            const confirmPasswordInput = document.getElementById('confirmPassword');
+            const submitBtn = document.getElementById('submitBtn');
+            const successMessage = document.getElementById('successMessage');
+            const strengthMeter = document.getElementById('strengthMeter');
+            const strengthText = document.getElementById('strengthText');
+            
+            const validationState = {
+                name: false,
+                email: false,
+                phone: false,
+                password: false,
+                confirmPassword: false
+            };
+            
+            function updateSubmitButtonState() {
+                const allValid = Object.values(validationState).every(state => state === true);
+                submitBtn.disabled = !allValid;
+            }
+            
+            function showError(input, message) {
+                const errorElement = document.getElementById(`${input.id}Error`);
+                input.classList.add('error');
+                input.classList.remove('success');
+                errorElement.textContent = message;
+                errorElement.classList.add('visible');
+                validationState[input.id] = false;
+                updateSubmitButtonState();
+            }
+            
+            function showSuccess(input) {
+                const errorElement = document.getElementById(`${input.id}Error`);
+                input.classList.remove('error');
+                input.classList.add('success');
+                errorElement.textContent = '';
+                errorElement.classList.remove('visible');
+                validationState[input.id] = true;
+                updateSubmitButtonState();
+            }
+            
+            function validateName() {
+                const nameValue = nameInput.value.trim();
+                
+                if (nameValue === '') {
+                    showError(nameInput, 'Name is required');
+                } else if (nameValue.length < 3) {
+                    showError(nameInput, 'Name must be at least 3 characters');
+                } else {
+                    showSuccess(nameInput);
+                }
+            }
+            
+            function validateEmail() {
+                const emailValue = emailInput.value.trim();
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                
+                if (emailValue === '') {
+                    showError(emailInput, 'Email is required');
+                } else if (!emailRegex.test(emailValue)) {
+                    showError(emailInput, 'Please enter a valid email address');
+                } else {
+                    showSuccess(emailInput);
+                }
+            }
+            
+            function validatePhone() {
+                const phoneValue = phoneInput.value.trim();
+                const phoneRegex = /^\+?[0-9\s\-\(\)]{10,15}$/;
+                
+                if (phoneValue === '') {
+                    showError(phoneInput, 'Phone number is required');
+                } else if (!phoneRegex.test(phoneValue)) {
+                    showError(phoneInput, 'Please enter a valid phone number');
+                } else {
+                    showSuccess(phoneInput);
+                }
+            }
+            
+            function checkPasswordStrength(password) {
+                let strength = 0;
+                
+                if (password.length >= 8) strength += 1;
+                
+                if (/[A-Z]/.test(password)) strength += 1;
+                if (/[a-z]/.test(password)) strength += 1;
+                if (/[0-9]/.test(password)) strength += 1;
+                if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+                
+                return strength;
+            }
+            
+            function updatePasswordStrength() {
+                const password = passwordInput.value;
+                const strength = checkPasswordStrength(password);
+                
+                strengthMeter.style.width = `${(strength / 5) * 100}%`;
+                
+                if (strength <= 1) {
+                    strengthMeter.style.backgroundColor = '#ff3860'; 
+                    strengthText.textContent = 'Very Weak';
+                    strengthText.style.color = '#ff3860';
+                } else if (strength === 2) {
+                    strengthMeter.style.backgroundColor = '#ffdd57'; 
+                    strengthText.textContent = 'Weak';
+                    strengthText.style.color = '#ffdd57';
+                } else if (strength === 3) {
+                    strengthMeter.style.backgroundColor = '#ffaa00'; 
+                    strengthText.textContent = 'Medium';
+                    strengthText.style.color = '#ffaa00';
+                } else if (strength === 4) {
+                    strengthMeter.style.backgroundColor = '#9edb58'; 
+                    strengthText.textContent = 'Strong';
+                    strengthText.style.color = '#9edb58';
+                } else {
+                    strengthMeter.style.backgroundColor = '#23d160'; 
+                    strengthText.textContent = 'Very Strong';
+                    strengthText.style.color = '#23d160';
+                }
+            }
+            
+            function validatePassword() {
+                const passwordValue = passwordInput.value;
+                const strength = checkPasswordStrength(passwordValue);
+                
+                if (passwordValue === '') {
+                    showError(passwordInput, 'Password is required');
+                } else if (passwordValue.length < 8) {
+                    showError(passwordInput, 'Password must be at least 8 characters');
+                } else if (strength < 3) {
+                    showError(passwordInput, 'Password is too weak');
+                } else {
+                    showSuccess(passwordInput);
+                }
+                
+                if (confirmPasswordInput.value !== '') {
+                    validateConfirmPassword();
+                }
+            }
+            
+            function validateConfirmPassword() {
+                const confirmValue = confirmPasswordInput.value;
+                const passwordValue = passwordInput.value;
+                
+                if (confirmValue === '') {
+                    showError(confirmPasswordInput, 'Please confirm your password');
+                } else if (confirmValue !== passwordValue) {
+                    showError(confirmPasswordInput, 'Passwords do not match');
+                } else {
+                    showSuccess(confirmPasswordInput);
+                }
+            }
+            
+            nameInput.addEventListener('input', validateName);
+            nameInput.addEventListener('blur', validateName);
+            
+            emailInput.addEventListener('input', validateEmail);
+            emailInput.addEventListener('blur', validateEmail);
+            
+            phoneInput.addEventListener('input', validatePhone);
+            phoneInput.addEventListener('blur', validatePhone);
+            
+            passwordInput.addEventListener('input', function() {
+                updatePasswordStrength();
+                validatePassword();
+            });
+            passwordInput.addEventListener('blur', validatePassword);
+            
+            confirmPasswordInput.addEventListener('input', validateConfirmPassword);
+            confirmPasswordInput.addEventListener('blur', validateConfirmPassword);
+            
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                validateName();
+                validateEmail();
+                validatePhone();
+                validatePassword();
+                validateConfirmPassword();
+                
+                const allValid = Object.values(validationState).every(state => state === true);
+                
+                if (allValid) {
+                    successMessage.classList.add('visible');
+                    
+                    setTimeout(() => {
+                        form.reset();
+                        successMessage.classList.remove('visible');
+                        
+                        Object.keys(validationState).forEach(key => {
+                            validationState[key] = false;
+                        });
+                        
+                        const inputs = form.querySelectorAll('input');
+                        inputs.forEach(input => {
+                            input.classList.remove('success');
+                        });
+                        
+                        strengthMeter.style.width = '0';
+                        strengthText.textContent = '';
+                        
+                        updateSubmitButtonState();
+                    }, 3000);
+                }
+            });
+            
+            updateSubmitButtonState();
+        });
+    </script>
+</body>
+</html>
